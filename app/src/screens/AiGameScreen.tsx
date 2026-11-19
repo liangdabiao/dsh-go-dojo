@@ -9,6 +9,7 @@ import { parseCoord, xyToCoord } from "../game/ai/boardCodec";
 import { renderBoardImage } from "../game/ai/boardImage";
 import { findFallbackMove, isLegal } from "../game/ai/goAI";
 import { requestAiMove } from "../game/ai/deepseekClient";
+import type { AiSettings } from "../game/ai/settingsClient";
 import type { GameSave, Level, LevelResult, Locale } from "../game/types";
 import "../vendor/goban/Goban.css";
 
@@ -17,6 +18,10 @@ interface AiGameScreenProps {
     locale?: Locale;
     onBack?: () => void;
     onAdvance?: (nextLevelId: string) => void;
+    /** 宿主 AI 配置状态（null = 还在读 / 读不到） */
+    aiStatus?: AiSettings | null;
+    /** 打开面板设置（未配置时横幅里的「去设置」） */
+    onOpenSettings?: () => void;
 }
 
 interface GameRef {
@@ -42,6 +47,8 @@ export function AiGameScreen({
     locale = "zh",
     onBack,
     onAdvance,
+    aiStatus = null,
+    onOpenSettings,
 }: AiGameScreenProps): React.ReactElement {
     const ai = level.aiGame!;
     const t = useMemo(() => level.title[locale] ?? level.title.zh, [level, locale]);
@@ -163,8 +170,8 @@ export function AiGameScreen({
         if (req && "notConfigured" in req && req.notConfigured) {
             setKeyHint(
                 locale === "zh"
-                    ? "宿主未配置 LLM API Key — AI 走子降级为本地陪练算法（可在插件设置里配置 API 地址 / Key / 模型）"
-                    : "No LLM API key configured — AI moves fall back to the local greedy AI (set API URL / key / model in plugin settings)",
+                    ? "还没配 API Key — 这一手用本地陪练兜底。点上面的「去设置」填好 Key，下一手就会走真实大模型。"
+                    : "No API key yet — this move used the local AI. Fill one in “Open settings” and the next move goes to the real model.",
             );
         }
         if (req && "move" in req && req.move !== "pass") {
@@ -373,6 +380,38 @@ export function AiGameScreen({
                     AI 🎯 {captures.ai}/{target}
                 </span>
             </div>
+
+            {/* AI 配置状态：未配置 = 明确告诉玩家「现在是本地陪练」并可一键去设置 */}
+            {aiStatus && !aiStatus.hasKey && (
+                <div className="ai-status is-warn" role="status">
+                    <span className="ai-status-dot" aria-hidden="true" />
+                    <span className="ai-status-text">
+                        {locale === "zh"
+                            ? "AI 未配置 · 这局由本地陪练执子（不是大模型）"
+                            : "AI not configured · the local AI plays this game, not the LLM"}
+                    </span>
+                    {onOpenSettings && (
+                        <button className="ghost-btn ai-status-btn" onClick={onOpenSettings}>
+                            {locale === "zh" ? "去设置" : "Open settings"}
+                        </button>
+                    )}
+                </div>
+            )}
+            {aiStatus?.hasKey && (
+                <div className="ai-status is-ok" role="status">
+                    <span className="ai-status-dot" aria-hidden="true" />
+                    <span className="ai-status-text">
+                        {locale === "zh"
+                            ? `AI 已就绪 · ${aiStatus.model}`
+                            : `AI ready · ${aiStatus.model}`}
+                    </span>
+                    {onOpenSettings && (
+                        <button className="ghost-btn ai-status-btn" onClick={onOpenSettings}>
+                            {locale === "zh" ? "调整" : "Change"}
+                        </button>
+                    )}
+                </div>
+            )}
 
             <div ref={containerRef} className="go-game-board" />
 

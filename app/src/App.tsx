@@ -8,6 +8,7 @@ import { ChapterScreen } from "./screens/ChapterScreen";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { LEVELS } from "./game/levels";
 import { loadLocale } from "./game/preferences";
+import { loadAiSettings, type AiSettings } from "./game/ai/settingsClient";
 import { audio } from "./game/audio";
 import { bgm } from "./game/bgm";
 import type { Locale } from "./game/types";
@@ -30,6 +31,16 @@ export function App(): React.ReactElement {
     const [view, setView] = useState<View>(initialView);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [resetKey, setResetKey] = useState(0);
+    // BOSS 关的 AI 配置状态：null = 还没读到（或宿主接口不可用）
+    const [aiSettings, setAiSettings] = useState<AiSettings | null>(null);
+
+    const refreshAiSettings = useCallback(() => {
+        void loadAiSettings().then(setAiSettings);
+    }, []);
+
+    useEffect(() => {
+        refreshAiSettings();
+    }, [refreshAiSettings]);
 
     useEffect(() => {
         const unlock = () => {
@@ -99,6 +110,8 @@ export function App(): React.ReactElement {
                             locale={locale}
                             onBack={back}
                             onAdvance={goLevel}
+                            aiStatus={aiSettings}
+                            onOpenSettings={() => setSettingsOpen(true)}
                         />
                     );
                 }
@@ -133,6 +146,7 @@ export function App(): React.ReactElement {
                     onLocaleChange={setLocale}
                     onClose={() => setSettingsOpen(false)}
                     onReset={handleReset}
+                    onAiSaved={setAiSettings}
                 />
             )}
         </div>

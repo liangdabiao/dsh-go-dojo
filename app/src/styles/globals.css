@@ -625,6 +625,12 @@ body {
 .settings-card {
     width: min(90vw, 360px);
     text-align: left;
+    /* 面板在窄高窗口（如 dsh 的 iframe）里时，设置项会超出视口：
+       给卡片自己的滚动，保证底部的「保存 / 完成」始终能滚到 */
+    max-height: min(88vh, 780px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
 }
 
 .settings-row {
@@ -689,6 +695,171 @@ body {
 
 .settings-danger:hover {
     background: #ff6b5b !important;
+}
+
+/* ---------- Settings · AI 对弈（go-dojo 增量） ---------- */
+
+.settings-section {
+    margin: 0.9rem 0 0.4rem;
+    padding: 0.85rem 0.9rem 0.75rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.settings-section-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #f5c451;
+    letter-spacing: 0.02em;
+}
+
+.settings-status {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    padding: 0.4rem 0.6rem;
+    border-radius: 8px;
+}
+
+.settings-status.is-ok {
+    color: #9fe3b5;
+    background: rgba(107, 206, 138, 0.1);
+    border: 1px solid rgba(107, 206, 138, 0.28);
+}
+
+.settings-status.is-warn {
+    color: #f2d08a;
+    background: rgba(245, 196, 81, 0.1);
+    border: 1px solid rgba(245, 196, 81, 0.28);
+}
+
+.settings-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    background: currentColor;
+}
+
+.settings-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.82rem;
+    color: #b9bccb;
+}
+
+.settings-input {
+    width: 100%;
+    padding: 0.5rem 0.65rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(12, 14, 26, 0.75);
+    color: #e8e8f0;
+    font-size: 0.85rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.settings-input:focus {
+    border-color: rgba(245, 196, 81, 0.65);
+    box-shadow: 0 0 0 3px rgba(245, 196, 81, 0.12);
+}
+
+.settings-input:disabled {
+    opacity: 0.55;
+}
+
+.settings-ai-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.settings-ai-actions .primary-btn,
+.settings-ai-actions .ghost-btn {
+    padding: 0.45rem 0.8rem;
+    font-size: 0.85rem;
+}
+
+.settings-ai-msg {
+    font-size: 0.82rem;
+    line-height: 1.5;
+    padding: 0.4rem 0.6rem;
+    border-radius: 8px;
+    word-break: break-word;
+}
+
+.settings-ai-msg.tone-ok {
+    color: #9fe3b5;
+    background: rgba(107, 206, 138, 0.1);
+}
+
+.settings-ai-msg.tone-warn {
+    color: #f2d08a;
+    background: rgba(245, 196, 81, 0.1);
+}
+
+.settings-ai-msg.tone-err {
+    color: #ffb3a9;
+    background: rgba(231, 76, 60, 0.12);
+}
+
+.settings-hint {
+    font-size: 0.75rem;
+    line-height: 1.55;
+    color: #8b8fa3;
+}
+
+/* ---------- BOSS 关 AI 状态横幅（go-dojo 增量） ---------- */
+
+.ai-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    max-width: 34rem;
+    margin: 0.2rem auto 0.5rem;
+    padding: 0.45rem 0.7rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.ai-status.is-warn {
+    color: #f2d08a;
+    background: rgba(245, 196, 81, 0.1);
+    border: 1px solid rgba(245, 196, 81, 0.3);
+}
+
+.ai-status.is-ok {
+    color: #9fe3b5;
+    background: rgba(107, 206, 138, 0.09);
+    border: 1px solid rgba(107, 206, 138, 0.26);
+}
+
+.ai-status-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: currentColor;
+    flex: 0 0 auto;
+}
+
+.ai-status-text {
+    flex: 1;
+}
+
+.ai-status-btn {
+    padding: 0.25rem 0.6rem !important;
+    font-size: 0.8rem !important;
+    white-space: nowrap;
 }
 
 /* ---------- Unlock / completion animations ---------- */

@@ -33,7 +33,9 @@ dsh plugin --profile web add https://github.com/liangdabiao/dsh-go-dojo
 - 未配 Key：AI 走子自动降级为本地陪练算法，面板给一次性提示（仍可正常通关）
 - 提示词刻意简短 + `thinking: {type:"disabled"}` 关思维链（原版实测 2s–23s → 0.4–0.8s）
 
-**插件设置**（Config）：
+**AI 设置（面板内，推荐）**：面板右上角 ⚙ →「AI 对弈（BOSS 关）」直接填 **API 地址 / 模型 / API Key**，保存即生效（下一手 AI 走子就用新配置），还能点「测试连接」当场验证 key。Key 只存在本机 `$DSH_HOME/go-dojo/settings.json`（0600），接口只回 `hasKey` 和掩码尾号，不会下发浏览器。BOSS 关顶部有状态横幅：未配置时明确写「这局由本地陪练执子」并给「去设置」按钮，配好则显示「AI 已就绪 · 模型名」。
+
+**插件设置**（Config，可作默认值）：
 
 | 字段 | 默认 | 说明 |
 |---|---|---|
@@ -41,11 +43,16 @@ dsh plugin --profile web add https://github.com/liangdabiao/dsh-go-dojo
 | `aiApiKey` | 空（secret） | 留空 = 本地陪练 |
 | `aiModel` | `deepseek-flash` | 需支持视觉多模态（image_url） |
 
+优先级：**面板里保存的值 > 插件 Config > 内置默认**。
+
 ## 面板 API（/go-dojo 前缀）
 
 ```
 GET  /api/ping           存活检查
 POST /api/ai-move        LLM 走子代理（未配 key → 503 not_configured）
+GET  /api/settings       当前 AI 配置（掩码，无明文 key）
+POST /api/settings       保存地址/模型/Key（clearKey 清 Key）
+POST /api/ai-test        用当前配置打一次真实请求，验 key
 GET  /                   闯关 SPA（app/dist 静态资源）
 ```
 

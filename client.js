@@ -53,6 +53,42 @@ window.__ModuleLoader__.load({
 
       function DojoPanel() {
         const ref = React.useRef ? React.useRef(null) : { current: null }
+        const wrapRef = React.useRef ? React.useRef(null) : { current: null }
+        const sizeRef = React.useRef({ width: 0, height: 0 })
+        const [, forceRender] = React.useState ? React.useState(0) : [0, () => {}]
+
+        // 主区域容器在部分宿主布局里是 100vw（比可见区域宽），iframe 用 width:100%
+        // 就会把 SPA 撑到屏幕外：右侧被裁、右上角的设置按钮点不到。
+        // 这里按「可见视口 − 容器左偏移」算死像素尺寸，保证 SPA 视口就是用户看到的区域。
+        React.useEffect(() => {
+          const measure = () => {
+            const el = wrapRef.current
+            if (!el) return
+            try {
+              const rect = el.getBoundingClientRect()
+              const doc = document.documentElement
+              const vw = doc.clientWidth || window.innerWidth
+              const vh = doc.clientHeight || window.innerHeight
+              const width = Math.max(320, Math.floor(vw - Math.max(0, rect.left)))
+              const height = Math.max(240, Math.floor(vh - Math.max(0, rect.top)))
+              const prev = sizeRef.current
+              if (prev.width === width && prev.height === height) return
+              sizeRef.current = { width, height }
+              forceRender((n) => n + 1)
+            } catch { /* 量不到就退回 100% */ }
+          }
+          measure()
+          const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(measure) : null
+          if (ro) {
+            try { ro.observe(document.documentElement) } catch { /* ignore */ }
+            if (wrapRef.current) { try { ro.observe(wrapRef.current) } catch { /* ignore */ } }
+          }
+          window.addEventListener('resize', measure)
+          return () => {
+            window.removeEventListener('resize', measure)
+            if (ro) ro.disconnect()
+          }
+        }, [])
 
         React.useEffect(() => {
           const self = ref.current
@@ -61,14 +97,28 @@ window.__ModuleLoader__.load({
           return () => { frames.delete(self) }
         }, [])
 
-        return h('iframe', {
-          ref,
-          src: SRC,
-          title: LABEL,
-          allow: 'clipboard-write',
-          onLoad: (e) => { pushScheme(); post(e.currentTarget, { type: 'go-dojo:scheme', scheme }) },
-          style: { width: '100%', height: '100%', border: 0, display: 'block', background: 'transparent' }
-        })
+        const measured = sizeRef.current
+
+        return h('div', {
+          ref: wrapRef,
+          style: { width: '100%', height: '100%', overflow: 'hidden', display: 'block' }
+        },
+          h('iframe', {
+            ref,
+            src: SRC,
+            title: LABEL,
+            allow: 'clipboard-write',
+            onLoad: (e) => { pushScheme(); post(e.currentTarget, { type: 'go-dojo:scheme', scheme }) },
+            style: {
+              width: measured.width ? `${measured.width}px` : '100%',
+              height: measured.height ? `${measured.height}px` : '100%',
+              maxWidth: '100%',
+              maxHeight: '100%',
+              border: 0,
+              display: 'block',
+              background: 'transparent'
+            }
+          }))
       }
 
       ctx.slots.inject('sidebar.panellist', () =>

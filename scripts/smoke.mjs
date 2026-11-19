@@ -147,6 +147,44 @@ console.log('\n== 面板 API ==')
   check('GET-only 接口 POST → 405/404', post405.status === 405 || post405.status === 404)
 }
 
+console.log('\n== 面板 AI 设置 ==')
+{
+  // 面板设置覆盖插件 Config：地址/模型/Key 全走面板落盘
+  configRef.config = { aiBaseUrl: 'http://unused.example', aiApiKey: '', aiModel: 'plugin-model' }
+
+  const init = await req('GET', '/go-dojo/api/settings')
+  check('GET /api/settings 初始未配置', init.status === 200 && init.json.hasKey === false && init.json.keySource === 'none')
+
+  const invalidUrl = await req('POST', '/go-dojo/api/settings', { baseUrl: 'ftp://example.com' })
+  check('非法地址 → 400', invalidUrl.status === 400 && typeof invalidUrl.json.error === 'string')
+
+  const saved = await req('POST', '/go-dojo/api/settings', { baseUrl: UP, model: 'mock-model', apiKey: 'sk-mock' })
+  check('保存面板设置 → hasKey', saved.status === 200 && saved.json.hasKey === true, JSON.stringify(saved.json))
+  check('设置回执不含明文 key', !saved.text.includes('sk-mock') && !saved.text.includes('"apiKey"'))
+  check('key 掩码 + 来源 panel', typeof saved.json.keyHint === 'string' && saved.json.keyHint !== 'sk-mock' && saved.json.keySource === 'panel')
+
+  const reread = await req('GET', '/go-dojo/api/settings')
+  check('回读一致（地址/模型）', reread.json.baseUrl === UP && reread.json.model === 'mock-model')
+
+  // 面板里存了 key 之后，ai-move 用面板 key（插件 Config 的 key 是空的）
+  const mv2 = await req('POST', '/go-dojo/api/ai-move', moveBody)
+  check('面板 key 生效 → ai-move 落子', mv2.status === 200 && typeof mv2.json.move === 'string' && mv2.json.move !== 'pass', JSON.stringify(mv2.json))
+
+  const test = await req('POST', '/go-dojo/api/ai-test', {})
+  check('测试连接 → ok + 耗时', test.status === 200 && test.json.ok === true && typeof test.json.ms === 'number', JSON.stringify(test.json))
+
+  const cleared = await req('POST', '/go-dojo/api/settings', { clearKey: true })
+  check('清除 Key → hasKey false', cleared.status === 200 && cleared.json.hasKey === false)
+
+  const noKey2 = await req('POST', '/go-dojo/api/ai-move', moveBody)
+  check('清 Key 后 → 503 not_configured', noKey2.status === 503 && noKey2.json.error === 'not_configured')
+
+  // 地址也清回插件 Config 后，ai-test 应报未配置而不是去请求坏地址
+  await req('POST', '/go-dojo/api/settings', { baseUrl: '' })
+  const testNoKey = await req('POST', '/go-dojo/api/ai-test', {})
+  check('无 key 时测试连接 → not_configured', testNoKey.json.ok === false && testNoKey.json.error === 'not_configured')
+}
+
 await new Promise((r) => upstream.close(r))
 console.log(`\n冒烟结果：${pass} 过 / ${failN} 挂`)
 process.exitCode = failN === 0 ? 0 : 1

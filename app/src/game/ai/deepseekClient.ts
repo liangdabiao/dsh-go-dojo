@@ -8,14 +8,7 @@
  *
  * 相对路径前缀：面板挂在 /go-dojo/ 下，接口同前缀（不能用根绝对 /api/...）。
  */
-
-const BASE = (() => {
-    const p = location.pathname;
-    return p.endsWith("/") ? p : p + "/";
-})();
-
-const api = async (path: string, init?: RequestInit): Promise<Response> =>
-    fetch(`${BASE}api${path}`, init);
+import { postJson } from "./apiBase";
 
 export interface AiMoveRequest {
     /** 当前局面 PNG（dataURL），多模态发给视觉模型 */
@@ -49,11 +42,7 @@ export async function requestAiMove(
     req: AiMoveRequest,
 ): Promise<AiMoveResult | AiMoveFailure | null> {
     try {
-        const res = await api("/ai-move", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify(req),
-        });
+        const res = await postJson("/ai-move", req);
         const data = (await res.json().catch(() => ({}))) as {
             move?: unknown;
             error?: unknown;
