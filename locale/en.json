@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Go Dojo",
+    "description": "3564-level Go puzzle campaign (puzzles / multiple-choice / endgame flow, 8 chapters) + a boss duel against the in-chat dsh AI: it plays every move via the go_dojo tool with per-move commentary and post-game review. Full port of go-game, originally extracted from online-go.com LearningHub."
+  }
+}

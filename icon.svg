@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- 围棋道场：一黑一白两枚棋子 -->
+  <rect x="1" y="1" width="22" height="22" rx="4.5" fill="#1f2430"/>
+  <circle cx="8.6" cy="8.6" r="4.6" fill="#f4f4f0"/>
+  <circle cx="8.6" cy="8.6" r="3.1" fill="#ffffff"/>
+  <circle cx="15.9" cy="15.9" r="4.6" fill="#101216"/>
+  <circle cx="14.4" cy="14.4" r="1.5" fill="#3d4453"/>
+</svg>
