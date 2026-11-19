@@ -10,6 +10,7 @@ dsh plugin --profile web add https://github.com/liangdabiao/dsh-go-dojo
 ```
 
 ## 是什么
+<img width="474" height="432" alt="image" src="https://github.com/user-attachments/assets/c7048779-3973-413b-bbbc-15ec6fa80d24" />
 
 侧栏「围棋道场」面板，一个完整的单机围棋闯关游戏：
 
