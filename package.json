@@ -1,9 +1,9 @@
 {
   "name": "dsh-go-dojo",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
-  "description": "围棋道场：3564 关闯关（8 章节谜题/选择/终局流程题）+ BOSS 大模型对弈——LLM API 走子（URL/Key/模型可配，key 只在宿主侧），未配 key 降级本地陪练；源自 online-go.com LearningHub 的 go-game 全量移植。",
+  "description": "围棋道场：3564 关闯关（8 章节谜题/选择/终局流程题）+ BOSS 大模型对弈——棋盘画成 PNG 走视觉多模态 API（deepseek-flash 等，URL/Key/模型可配，key 只在宿主侧），未配 key 降级本地陪练；源自 online-go.com LearningHub 的 go-game 全量移植。",
   "exports": {
     ".": "./src/host.js",
     "./client": "./client.js",

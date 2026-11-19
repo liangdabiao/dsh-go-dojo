@@ -1,6 +1,6 @@
 # dsh-go-dojo · 围棋道场
 
-> 第 40 个 dsh 插件。3564 关围棋闯关 + BOSS 大模型对弈——AI 走子走 **LLM API**（URL/Key/模型可配，key 只在插件宿主侧），未配 key 自动降级本地陪练。
+> 第 40 个 dsh 插件。3564 关围棋闯关 + BOSS 大模型对弈——当前局面画成带坐标标注的棋盘 PNG，走**视觉多模态 API** 让模型直接看图落子（deepseek-flash 等；URL/Key/模型可配，key 只在插件宿主侧），未配 key 自动降级本地陪练。
 > 全量移植自 [go-game](https://github.com/liangdabiao)（源自 [online-go.com](https://online-go.com) LearningHub 的闯关教程），AGPL-3.0。
 
 ## 安装
@@ -19,9 +19,15 @@ dsh plugin --profile web add https://github.com/liangdabiao/dsh-go-dojo
 - **中文优先**（内置英文切换）、Web Audio 合成音效、背景音乐
 - **纯本地**：SPA 断网可玩（BOSS 关 AI 走子除外）
 
-## BOSS 关：LLM API 走子
+## BOSS 关：棋盘图片 + 视觉多模态走子
 
-原版 go-game 的架构原样回归——面板把棋盘（ASCII 图 + 棋谱 + 提子数）POST 到插件宿主的 `/go-dojo/api/ai-move`，宿主代理调用你配置的 OpenAI 兼容 API（默认 DeepSeek），**key 只在宿主进程里，不下发浏览器**：
+面板把当前局面画成一张**带坐标标注的棋盘 PNG**（列字母/行号、最后一手红点标记），连同棋谱与提子数 POST 到插件宿主的 `/go-dojo/api/ai-move`；宿主组装 OpenAI 兼容多模态 content 数组（`image_url` + 简短 text），调用你配置的视觉模型（默认 `deepseek-flash`，实测看图 ~1.2s 回一手），**key 只在宿主进程里，不下发浏览器**：
+
+- 原版冗长的 ASCII 文字棋盘已去掉（视觉模型直接看图，提示词大幅缩短）
+- 落子合法性（越界坐标）在代理层校验；非法回复返回错误，面板降级本地贪心算法
+- 未配 Key：AI 走子自动降级为本地陪练算法，面板给一次性提示（仍可正常通关）
+- `thinking: {type:"disabled"}` 关思维链（原版实测 2s–23s → 看图 1.2s 左右）
+- 请求体仍兼容旧版文字棋盘 `boardText`（无图时纯文本模式）
 
 - 落子合法性（越界坐标）在代理层校验；非法回复返回错误，面板降级本地贪心算法
 - 未配 Key：AI 走子自动降级为本地陪练算法，面板给一次性提示（仍可正常通关）
@@ -33,7 +39,7 @@ dsh plugin --profile web add https://github.com/liangdabiao/dsh-go-dojo
 |---|---|---|
 | `aiBaseUrl` | `https://api.deepseek.com` | OpenAI 兼容 chat/completions 地址 |
 | `aiApiKey` | 空（secret） | 留空 = 本地陪练 |
-| `aiModel` | `deepseek-chat` | 任意 OpenAI 兼容模型 |
+| `aiModel` | `deepseek-flash` | 需支持视觉多模态（image_url） |
 
 ## 面板 API（/go-dojo 前缀）
 
@@ -66,3 +72,5 @@ app/               面板 SPA（go-game 移植，vite 构建，dist 随包）
 ## 致谢与许可
 
 关卡数据与 goban 棋盘引擎源自 [online-go.com](https://online-go.com)（AGPL-3.0 / Apache-2.0），闯关化改编来自 go-game。本项目延续 **AGPL-3.0**。
+
+感谢社区支持： https://linux.do

@@ -4,14 +4,15 @@ import { createServer } from 'node:http'
 import { requestAiMove } from '../lib/ai-move.js'
 
 const W = 7, H = 7
-const emptyBoard = () => Array.from({ length: H }, () => Array(W).fill(0))
+const PNG_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
 const baseBody = () => ({
-  boardText: '  A B C D E F G\n 7 . . . . . . .\n 6 . . . . . . .\n 5 . . . . . . .\n 4 . . . . . . .\n 3 . . . . . . .\n 2 . . . . . . .\n 1 . . . . . . .',
+  imageBase64: PNG_DATA_URL,
+  lastMove: 'D4',
   width: W, height: H, aiColor: 2, playerColor: 1, targetCaptures: 3,
-  moveHistory: [], aiCaptures: 0, playerCaptures: 0,
+  moveHistory: ['D4'], aiCaptures: 0, playerCaptures: 0,
 })
 
-/** 起一个 OpenAI 兼容 mock：按 replyFactory(body) 返回 content */
+/** 起一个 OpenAI 兼容 mock：replyFactory(req) 返回 content 字符串 */
 async function withMockUpstream(replyFactory, fn) {
   const server = createServer((req, res) => {
     let raw = ''
@@ -41,10 +42,43 @@ test('未配 key → not_configured（503）', async () => {
   assert.equal(r.status, 503)
 })
 
-test('mock 上游：正常回落子坐标', async () => {
-  await withMockUpstream(() => '{"move":"C4"}', async (base) => {
-    const r = await requestAiMove(baseBody(), { aiBaseUrl: base, aiApiKey: 'sk-test', aiModel: 'mock-model' })
+test('图片缺失且无 boardText → 明确报错', async () => {
+  const b = baseBody()
+  delete b.imageBase64
+  const r = await requestAiMove(b, { aiBaseUrl: 'http://127.0.0.1:1', aiApiKey: 'k', aiModel: 'm' })
+  assert.equal(r.move, null)
+  assert.match(r.error, /no board image/)
+})
+
+test('多模态：content 数组含 image_url，dataURL 原样透传，text 不含棋盘字符画', async () => {
+  await withMockUpstream((req) => {
+    const user = req.messages.find((m) => m.role === 'user')
+    assert.ok(Array.isArray(user.content), '有图时 content 应为数组')
+    const imgPart = user.content.find((p) => p.type === 'image_url')
+    assert.equal(imgPart.image_url.url, PNG_DATA_URL)
+    const textPart = user.content.find((p) => p.type === 'text')
+    assert.ok(!textPart.text.includes('A B C D'), '文字棋盘字符画应已去掉')
+    assert.ok(textPart.text.includes('Moves so far: D4'))
+    assert.ok(req.messages[0].content.includes('image'), 'system 应说明附图')
+    return '{"move":"C4"}'
+  }, async (base) => {
+    const r = await requestAiMove(baseBody(), { aiBaseUrl: base, aiApiKey: 'sk-test', aiModel: 'deepseek-flash' })
     assert.equal(r.move, 'C4')
+  })
+})
+
+test('boardText 兼容回退：无图时走纯文字', async () => {
+  const b = baseBody()
+  delete b.imageBase64
+  b.boardText = '  A B C D E F G\n 7 . . . . . . .'
+  await withMockUpstream((req) => {
+    const user = req.messages.find((m) => m.role === 'user')
+    assert.equal(typeof user.content, 'string')
+    assert.ok(user.content.includes('A B C D'))
+    return '{"move":"E5"}'
+  }, async (base) => {
+    const r = await requestAiMove(b, { aiBaseUrl: base, aiApiKey: 'k', aiModel: 'm' })
+    assert.equal(r.move, 'E5')
   })
 })
 
@@ -63,15 +97,15 @@ test('越界坐标被拒 → move:null + error', async () => {
   })
 })
 
-test('pass 回复原样放行', async () => {
+test('pass 回复原样放行（不被大写化）', async () => {
   await withMockUpstream(() => '{"move":"pass"}', async (base) => {
     const r = await requestAiMove(baseBody(), { aiBaseUrl: base, aiApiKey: 'k', aiModel: 'm' })
     assert.equal(r.move, 'pass')
   })
 })
 
-test('请求体带 lastError 会进提示词；key 透传 Bearer', async () => {
-  await withMockUpstream((body, auth) => {
+test('key 透传 Bearer；lastError 进提示词', async () => {
+  await withMockUpstream((req, auth) => {
     assert.equal(auth, 'Bearer k-secret')
     return JSON.stringify({ move: 'D4' })
   }, async (base) => {

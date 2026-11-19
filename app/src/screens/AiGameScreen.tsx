@@ -5,7 +5,8 @@ import { Fireworks } from "../components/Fireworks";
 import { getNextLevel } from "../game/levels";
 import { applyResult, loadSave, totalPoints, totalStars } from "../game/progress";
 import { audio } from "../game/audio";
-import { parseCoord, serializeBoard, xyToCoord } from "../game/ai/boardCodec";
+import { parseCoord, xyToCoord } from "../game/ai/boardCodec";
+import { renderBoardImage } from "../game/ai/boardImage";
 import { findFallbackMove, isLegal } from "../game/ai/goAI";
 import { requestAiMove } from "../game/ai/deepseekClient";
 import type { GameSave, Level, LevelResult, Locale } from "../game/types";
@@ -148,7 +149,8 @@ export function AiGameScreen({
         const candidates: Array<{ x: number; y: number }> = [];
 
         const req = await requestAiMove({
-            boardText: serializeBoard(board, w, h),
+            imageBase64: renderBoardImage(board, w, h, st.moveHistory[st.moveHistory.length - 1]),
+            lastMove: st.moveHistory[st.moveHistory.length - 1],
             width: w,
             height: h,
             aiColor,

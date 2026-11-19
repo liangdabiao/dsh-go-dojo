@@ -1,9 +1,10 @@
 /**
- * Client for the LLM-backed AI move. POSTs the current board (serialized by
- * boardCodec) to the same-origin plugin route `api/ai-move` — the dsh plugin
- * host proxies the configured OpenAI-compatible API and keeps the key
- * server-side. Any failure (no key configured, network, bad reply) returns
- * null so the caller can fall back to the local greedy AI.
+ * Client for the LLM-backed AI move. POSTs the current board as a PNG image
+ * (multimodal `image_url`) to the same-origin plugin route `api/ai-move` — the
+ * dsh plugin host proxies the configured OpenAI-compatible API (deepseek-flash
+ * 等视觉模型) and keeps the key server-side. Any failure (no key configured,
+ * network, bad reply) returns a failure marker so the caller can fall back to
+ * the local greedy AI.
  *
  * 相对路径前缀：面板挂在 /go-dojo/ 下，接口同前缀（不能用根绝对 /api/...）。
  */
@@ -13,8 +14,14 @@ const BASE = (() => {
     return p.endsWith("/") ? p : p + "/";
 })();
 
+const api = async (path: string, init?: RequestInit): Promise<Response> =>
+    fetch(`${BASE}api${path}`, init);
+
 export interface AiMoveRequest {
-    boardText: string;
+    /** 当前局面 PNG（dataURL），多模态发给视觉模型 */
+    imageBase64: string;
+    /** 最后一手（"C4"/"pass"），服务端只用于提示词，图上已画红点 */
+    lastMove?: string;
     width: number;
     height: number;
     aiColor: number; // 1 = black, 2 = white
@@ -42,7 +49,7 @@ export async function requestAiMove(
     req: AiMoveRequest,
 ): Promise<AiMoveResult | AiMoveFailure | null> {
     try {
-        const res = await fetch(`${BASE}api/ai-move`, {
+        const res = await api("/ai-move", {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify(req),

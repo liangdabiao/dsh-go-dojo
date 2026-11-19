@@ -25,12 +25,14 @@ const check = (name, cond, detail = '') => {
 }
 
 // ---------------------------------------------------------------- mock 上游
-// OpenAI 兼容：从 user 消息文本里抠棋盘，挑最靠中心的空点——验证代理真的把棋盘传上去了
+// OpenAI 兼容 mock：从 user 消息文本里抠棋盘行（形如 "7 . . . . . . ."，
+// boardText 兼容回退模式），挑最靠中心的空点落子——验证代理真的把棋盘传上去了。
 const mockBody = (req) => {
   const user = req.messages?.find((m) => m.role === 'user')?.content ?? ''
-  const boardText = user.split('Board (B=black, W=white, .=empty):')[1]?.split('Your move:')[0] ?? ''
-  const lines = boardText.split('\n').filter((l) => /\d/.test(l))
-  const grid = lines.map((l) => l.trim().split(/\s+/).slice(1))
+  const boardLines = typeof user === 'string'
+    ? user.split('\n').filter((l) => /^\s*\d+(\s+[BW.])+\s*$/.test(l))
+    : []
+  const grid = boardLines.map((l) => l.trim().split(/\s+/).slice(1))
   const h = grid.length
   const w = grid[0]?.length ?? 0
   const cx = (w - 1) / 2, cy = (h - 1) / 2
@@ -47,16 +49,28 @@ const mockBody = (req) => {
   return { choices: [{ message: { content: `{"move":"${move}"}` } }] }
 }
 
-const upstream = createServer((req, res) => {
+// 多模态请求（content 数组带 image_url）：回固定一手，验证图片通路
+const MULTIMODAL_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+const upstreamHandler = (req, res) => {
   let raw = ''
   req.on('data', (c) => { raw += c })
   req.on('end', () => {
     const auth = req.headers.authorization || ''
     if (auth !== 'Bearer sk-mock') { res.writeHead(401); return res.end() }
+    const body = JSON.parse(raw || '{}')
+    const user = body.messages?.find((m) => m.role === 'user')?.content
+    const multimodal = Array.isArray(user) && user.some((p) => p.type === 'image_url')
     res.writeHead(200, { 'content-type': 'application/json' })
-    res.end(JSON.stringify(mockBody(JSON.parse(raw || '{}'))))
+    if (multimodal) {
+      const imgPart = user.find((p) => p.type === 'image_url')
+      if (imgPart.image_url.url !== MULTIMODAL_PNG) { res.writeHead(400); return res.end('bad image') }
+      return res.end(JSON.stringify({ choices: [{ message: { content: '{"move":"E5"}' } }] }))
+    }
+    res.end(JSON.stringify(mockBody(body)))
   })
-})
+}
+
+const upstream = createServer(upstreamHandler)
 await new Promise((r) => upstream.listen(0, '127.0.0.1', r))
 const UP = `http://127.0.0.1:${upstream.address().port}`
 
@@ -112,7 +126,10 @@ console.log('\n== 面板 API ==')
 
   configRef.config = { aiBaseUrl: UP, aiApiKey: 'sk-mock', aiModel: 'mock-model' }
   const mv = await req('POST', '/go-dojo/api/ai-move', moveBody)
-  check('ai-move 代理 → mock 上游落子', mv.status === 200 && typeof mv.json.move === 'string' && mv.json.move !== 'pass', JSON.stringify(mv.json))
+  check('ai-move 代理（boardText 兼容）→ mock 上游落子', mv.status === 200 && typeof mv.json.move === 'string' && mv.json.move !== 'pass', JSON.stringify(mv.json))
+
+  const mmReq = await req('POST', '/go-dojo/api/ai-move', { ...moveBody, imageBase64: MULTIMODAL_PNG })
+  check('ai-move 多模态（image_url 透传）→ mock 回 E5', mmReq.status === 200 && mmReq.json.move === 'E5', JSON.stringify(mmReq.json))
 
   const bad = await req('POST', '/go-dojo/api/ai-move', {})
   check('空棋盘体 → 不炸（上游仍回一子）', bad.status === 200 && bad.json.move !== undefined)
