@@ -5,7 +5,7 @@
  */
 
 // 相对 base：面板由 dsh 插件在 /go-dojo/ 前缀下伺服，不能用根绝对路径
-const BGM_URL = `${import.meta.env.BASE_URL ?? "./"}aaa.mp3`;
+const BGM_URL = new URL("aaa.mp3", document.baseURI).href;
 const VOLUME = 0.5;
 
 class BgmManager {

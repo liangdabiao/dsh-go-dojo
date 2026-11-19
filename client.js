@@ -1,7 +1,5 @@
 // 围棋道场 · 浏览器半边
 // 侧栏加「围棋道场」入口；主区域是 /go-dojo/ 的闯关 SPA（iframe）。
-// BOSS 对弈的 AI 回合由 agent 下：页面 postMessage 把自包含对局指令递上来，
-// 这里 startSession 填进新对话草稿（只填不发，用户 Enter 发送）。
 // 明暗跟随 dsh 主题，切换时把配色发给页面。
 //
 // 注意：这个文件直接调 window.__ModuleLoader__.load，不要再被 build banner 包一层，
@@ -59,23 +57,8 @@ window.__ModuleLoader__.load({
         React.useEffect(() => {
           const self = ref.current
           if (self) frames.add(self)
-          addEventListener('message', onMessage)
           pushScheme()
-          return () => { removeEventListener('message', onMessage); frames.delete(self) }
-          function onMessage(e) {
-            const frame = ref.current
-            if (!frame || e.source !== frame.contentWindow || e.origin !== location.origin) return
-            const m = e.data
-            if (!m || m.type !== 'go-dojo:ask' || typeof m.prompt !== 'string') return
-            // BOSS 对弈 AI 回合：把对局指令填进新对话草稿（用户 Enter 发送）
-            try {
-              ctx.uiWorkspace.startSession(undefined, { prompt: m.prompt, whenDraftExists: 'replace' })
-              post(frame, { type: 'go-dojo:ask-ok' })
-            } catch (err) {
-              console.error('[go-dojo] 开新对话失败', err)
-              post(frame, { type: 'go-dojo:ask-failed', message: String((err && err.message) || err) })
-            }
-          }
+          return () => { frames.delete(self) }
         }, [])
 
         return h('iframe', {
@@ -93,6 +76,6 @@ window.__ModuleLoader__.load({
       ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANEL }, DojoPanel))
     }
 
-    return { inject: ['slots', 'uiWorkspace'], apply }
+    return { inject: ['slots'], apply }
   }
 })

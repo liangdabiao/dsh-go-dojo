@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Go Dojo",
-    "description": "3564-level Go puzzle campaign (puzzles / multiple-choice / endgame flow, 8 chapters) + a boss duel against the in-chat dsh AI: it plays every move via the go_dojo tool with per-move commentary and post-game review. Full port of go-game, originally extracted from online-go.com LearningHub."
+    "description": "3564-level Go puzzle campaign (8 chapters) + a boss duel against an LLM via OpenAI-compatible API (URL/key/model configurable, key stays host-side), falling back to a local greedy AI without a key. Full port of go-game, originally from online-go.com LearningHub."
   }
 }

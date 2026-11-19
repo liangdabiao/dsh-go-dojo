@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "围棋道场",
-    "description": "3564 关围棋闯关（谜题/选择/终局流程题，8 章节）+ BOSS 大模型对弈：dsh 对话里的 AI 棋手亲自执子落子、逐手讲解、局后复盘落档；源自 online-go.com LearningHub 的 go-game 全量移植。"
+    "description": "3564 关围棋闯关（谜题/选择/终局流程题，8 章节）+ BOSS 大模型对弈：LLM API 走子（API 地址/Key/模型可配，Key 只在插件宿主侧不下发浏览器），未配 Key 自动降级本地陪练；源自 online-go.com LearningHub 的 go-game 全量移植。"
   }
 }
